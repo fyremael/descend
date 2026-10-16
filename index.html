@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DESCEND — Pyro-GX 6DOF Flight & Navigation Academy</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Global Error & Promise Rejection Trap -->
+    <script>
+    function showGlobalError(title, err) {
+        console.error(title, err);
+        let d = document.getElementById('debug-err');
+        if (!d) {
+            d = document.createElement('div');
+            d.id = 'debug-err';
+            d.style.cssText = 'position:fixed;top:10px;left:10px;right:10px;background:#990000;color:#fff;padding:20px;z-index:9999999;font-family:monospace;font-size:15px;white-space:pre-wrap;border:3px solid #ffcccc;';
+            document.body ? document.body.appendChild(d) : document.documentElement.appendChild(d);
+        }
+        d.innerHTML = `<strong>${title}:</strong>\n${err ? (err.stack || err.message || err) : 'Unknown error'}`;
+    }
+    window.onerror = function(msg, url, line, col, error) {
+        showGlobalError('SCRIPT ERROR', `${msg}\nFile: ${url}\nLine: ${line}, Col: ${col}\n${error ? error.stack : ''}`);
+    };
+    window.addEventListener('unhandledrejection', function(e) {
+        showGlobalError('UNHANDLED PROMISE REJECTION', e.reason);
+    });
+    </script>
+</head>
+<body>
+    <div id="game-container">
+        <!-- CRT scanline and cockpit vignette overlays -->
+        <div class="scanlines"></div>
+        <div class="cockpit-vignette"></div>
+
+        <!-- Flight Academy Briefing & Launch Overlay -->
+        <div id="instructions-overlay">
+            <div class="modal-card">
+                <div class="modal-badge">PEACEFUL TRAINING MODE • ZERO ADVERSARIES</div>
+                <h1>DESCEND</h1>
+                <div class="subtitle">LEVEL 1: PYRO-GX 6DOF NAVIGATION & MANEUVER ACADEMY</div>
+
+                <div class="control-grid">
+                    <div class="control-item">
+                        <span class="desc">Pitch / Yaw Aim:</span>
+                        <span class="key">Mouse / Arrow Keys</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="desc">180° Retro Whip-Turn:</span>
+                        <span class="key">X</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="desc">Surge (Fwd / Back):</span>
+                        <span class="key">W / S</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="desc">Roll (2x Tap = 360° Snap Roll):</span>
+                        <span class="key">Q / E</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="desc">Sway (Slide Left / Right):</span>
+                        <span class="key">A / D</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="desc">Horizon Auto-Level Assist:</span>
+                        <span class="key">L</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="desc">Heave (Slide Up / Down):</span>
+                        <span class="key">Space / C</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="desc">Afterburner Boost:</span>
+                        <span class="key">Left Shift</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="desc">Slick Lasers (Cycle Mk 1–4):</span>
+                        <span class="key">L-Click / [1]</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="desc">Wild Corkscrew Missiles:</span>
+                        <span class="key">R-Click / F</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="desc">Camera (Chase / Cockpit):</span>
+                        <span class="key">V</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="desc">Next Academy Drill / Bloom:</span>
+                        <span class="key">T / B</span>
+                    </div>
+                </div>
+
+                <div class="maneuver-grid">
+                    <div class="maneuver-card">
+                        <div class="maneuver-title">1. THE SWING-AROUND (ORBIT-STRAFE)</div>
+                        <div class="maneuver-desc">Hold lateral slide (<strong>A</strong> or <strong>D</strong>) while turning your nose inward around a Pylon or the central <strong>Orbit Anchor</strong> to circle-strafe effortlessly.</div>
+                    </div>
+                    <div class="maneuver-card gold">
+                        <div class="maneuver-title">2. 180° WHIP-TURN & RETRO-DRIFT</div>
+                        <div class="maneuver-desc">Fly forward at high speed, then press <strong>X</strong> (or flick 180°) to whip your nose around while drifting backward on zero-G momentum!</div>
+                    </div>
+                    <div class="maneuver-card violet">
+                        <div class="maneuver-title">3. CLASSIC DESCENT TRICHORDING</div>
+                        <div class="maneuver-desc">Engage 3 orthogonal thrusters at once (<strong>W + A/D + Space</strong>) to combine thrust vectors for a <strong>1.36x Overdrive</strong> speed boost.</div>
+                    </div>
+                    <div class="maneuver-card emerald">
+                        <div class="maneuver-title">4. 360° SNAP ROLL & SLALOM GATES</div>
+                        <div class="maneuver-desc">Double-tap <strong>Q</strong> or <strong>E</strong> for an instant 360° aileron evade roll, and follow the 3D diamond HUD brackets through all 4 Slalom Rings.</div>
+                    </div>
+                </div>
+ 
+                <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-bottom:6px;">
+                    <button id="flythrough-btn" class="start-btn flythrough-btn">🚀 DEMO FLYTHROUGH (TAG-ALONG)</button>
+                    <button id="start-btn" class="start-btn manual-btn">🎮 ENGAGE 6DOF FLIGHT ACADEMY</button>
+                </div>
+                <div class="click-hint">Press <strong>V</strong> for Chase/Cockpit • <strong>X</strong> for 180° Whip-Turn • <strong>L</strong> for Horizon Level • <strong>T</strong> to Cycle Drills</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Game Unified Bundle (Single fast HTTP request, IIFE) -->
+    <script src="js/bundle.js?v=20"></script>
+
+    <!-- Fail-safe click handler -->
+    <script>
+        const overlay = document.getElementById('instructions-overlay');
+        const startBtn = document.getElementById('start-btn');
+        const flythroughBtn = document.getElementById('flythrough-btn');
+
+        function updateReadyUI() {
+            if (flythroughBtn) flythroughBtn.innerText = '🚀 DEMO FLYTHROUGH (TAG-ALONG)';
+            if (startBtn) startBtn.innerText = '🎮 ENGAGE 6DOF FLIGHT ACADEMY';
+        }
+
+        window.addEventListener('descent-ready', updateReadyUI);
+        if (window.__descentGame && window.__descentGame.isReady) {
+            updateReadyUI();
+        }
+
+        function applyStart(isFlythrough) {
+            if (!window.__descentGame) return;
+            try {
+                window.__descentGame.sound?.init();
+                if (isFlythrough) {
+                    window.__descentGame.viewMode = 'tag_along';
+                    window.__descentGame.flythrough?.start();
+                } else {
+                    window.__descentGame.flythrough?.stop();
+                    window.__descentGame.renderer?.domElement?.requestPointerLock?.();
+                }
+                if (overlay) overlay.style.display = 'none';
+            } catch(err) {
+                console.error('Launch failure:', err);
+                showGlobalError('STARTUP LAUNCH ERROR', err);
+            }
+        }
+
+        function triggerStart(e, isFlythrough = false) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            if (window.__descentGame && window.__descentGame.isReady) {
+                applyStart(isFlythrough);
+            } else {
+                if (flythroughBtn) flythroughBtn.innerText = '⏳ INITIALIZING ENGINES...';
+                if (startBtn) startBtn.innerText = '⏳ INITIALIZING ENGINES...';
+                window.__pendingStart = () => applyStart(isFlythrough);
+            }
+        }
+
+        if (flythroughBtn) {
+            flythroughBtn.addEventListener('click', (e) => triggerStart(e, true));
+            flythroughBtn.addEventListener('pointerdown', (e) => triggerStart(e, true));
+        }
+        if (startBtn) {
+            startBtn.addEventListener('click', (e) => triggerStart(e, false));
+            startBtn.addEventListener('pointerdown', (e) => triggerStart(e, false));
+        }
+        if (overlay) {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) triggerStart(e, true);
+            });
+        }
+    </script>
+</body>
+</html>
